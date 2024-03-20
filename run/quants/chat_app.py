@@ -31,8 +31,13 @@ class ChatApp:
             # 財務情報APIを呼び出す（この部分は実際のAPIによって異なります）
             financial_data = self.get_financial_data(stock_code)
 
+            # プロンプトのテキストを読み込む
+            with open("prompt.txt", "r", encoding="utf-8") as f:
+                prompt = f.read().format(financial_data=financial_data)
+
+            print(prompt)
             # 財務情報をClaude-3に渡す
-            self.messages.append({"role": "user", "content": f"この銘柄の寸評をお願いします。以下が、銘柄の財務情報となります。 {financial_data}"})
+            self.messages.append({"role": "user", "content": f"{prompt}"})
 
             # Claude-3に銘柄判断を求める
             with st.chat_message("assistant"):

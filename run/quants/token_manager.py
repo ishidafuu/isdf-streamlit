@@ -1,16 +1,15 @@
 import json
+import os
 from datetime import datetime, timedelta
 from datetime import timezone
 from typing import Optional
 
+import requests
 from dateutil.parser import parse
 from firebase_admin import firestore, credentials, initialize_app
 
 id_token_validity = timedelta(hours=24)
 refresh_token_validity = timedelta(days=7)
-import os
-
-import requests
 
 
 class FirestoreTokenManager:
@@ -66,7 +65,7 @@ class FirestoreTokenManager:
 
     def upload_user_data(self, mail_address: str, password: str):
         # Firebase Admin SDKの初期化設定を行う
-        cred = credentials.Certificate('key/firebase-adminsdk.json')
+        cred = credentials.Certificate('firebase-adminsdk.json')
         initialize_app(cred)
 
         # FirebaseからFirestoreデータベースへの接続を確立する

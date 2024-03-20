@@ -1,0 +1,5 @@
+streamlit
+anthropic
+pyrebase4
+pycryptodomex
+google-cloud-secret-manager

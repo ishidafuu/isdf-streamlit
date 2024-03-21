@@ -8,7 +8,9 @@ class ChatApp:
     def __init__(self, anthropic_key, id_token):
         self.anthropic_key = anthropic_key
         self.messages = []
-        self.model_options = ["claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229"]
+        # self.model_options = ["claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229"]
+        # self.model_options = ["claude-3-sonnet-20240229", "claude-3-opus-20240229"]
+        self.model_options = ["claude-3-sonnet-20240229"]
         self.model = self.model_options[0]
         self.id_token = id_token
         self.financial_data = None  # 財務情報を格納する変数

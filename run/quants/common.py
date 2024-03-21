@@ -39,6 +39,7 @@ class FirebaseLogin:
         self.firebase_api_key = firebase_api_key
         self.firebase = None
         self.auth = None
+        self.user_logged_in = False
         self.initialize_firebase()
 
     def initialize_firebase(self):
@@ -52,15 +53,14 @@ class FirebaseLogin:
         self.auth = self.firebase.auth()
 
     @staticmethod
-    # @st.cache_data
+    @st.cache_data
     def is_logged_in():
         if "user_logged_in" not in st.session_state:
             st.session_state.user_logged_in = False
-
         return st.session_state.user_logged_in
 
     def login(self):
-        if self.is_logged_in():
+        if FirebaseLogin.is_logged_in():
             return True
 
         email = st.empty()

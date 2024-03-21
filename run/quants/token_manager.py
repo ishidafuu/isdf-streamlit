@@ -23,6 +23,8 @@ class FirestoreTokenManager:
         self.document_user = 'user'
         self.field_mail_address = 'mail_address'
         self.field_password = 'password'
+        cred = credentials.Certificate('firebase-adminsdk.json')
+        initialize_app(cred)
 
     def get_document(self, collection: str, document: str, field: str, validity: Optional[timedelta] = None) -> Optional[str]:
         db = firestore.client()

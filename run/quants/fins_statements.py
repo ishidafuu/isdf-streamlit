@@ -1,4 +1,6 @@
+import csv
 from datetime import datetime
+import io
 from typing import List, Optional
 
 import requests
@@ -221,6 +223,24 @@ class Statement(BaseModel):
 
     def to_dict(self):
         return self.dict()
+
+    @staticmethod
+    def to_csv_string(statements: List['Statement']) -> str:
+        field_names = Statement.__annotations__.keys()
+        output = io.StringIO()
+        with output:
+            writer = csv.DictWriter(output, fieldnames=field_names)
+            writer.writeheader()
+            for statement in statements:
+                writer.writerow(statement.to_dict())
+            csv_content = output.getvalue()
+
+        with open("fins.csv", 'w', newline='', encoding='utf-8') as csvfile:
+            csvfile.write(csv_content)
+
+        return csv_content
+
+
 
 
 class FinsStatementsResponse(BaseModel):

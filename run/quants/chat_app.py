@@ -1,7 +1,7 @@
 import anthropic
 import streamlit as st
 
-from fins_statements import call_fins_statements
+from fins_statements import call_fins_statements, Statement
 
 
 class ChatApp:
@@ -38,7 +38,7 @@ class ChatApp:
         if stock_code:
             # 財務情報APIを呼び出す（この部分は実際のAPIによって異なります）
             financial_data = self.get_financial_data(stock_code)
-
+            print(financial_data)
             # 財務情報をClaude-3に渡す
             self.messages.append({"role": "user", "content": f"{prompt.format(financial_data=financial_data)}"})
 
@@ -65,8 +65,9 @@ class ChatApp:
     def get_financial_data(self, stock_code):
         # APIを呼び出して応答を取得
         response = call_fins_statements(self.id_token, stock_code)
+        financial_data = Statement.to_csv_string(response.statements)
 
         # 応答からデータを抽出
-        financial_data = response.to_dict()
+        # financial_data = response.to_dict()
 
         return financial_data

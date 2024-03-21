@@ -50,16 +50,16 @@ class FirebaseLogin:
         self.auth = self.firebase.auth()
 
     @staticmethod
-    # @st.cache_data
+    @st.cache_data
     def is_logged_in():
-        if "user_logged_in" not in st.session_state:
-            st.session_state.user_logged_in = False
-
         return st.session_state.user_logged_in
 
     def login(self):
         if self.is_logged_in():
             return True
+
+        if "user_logged_in" not in st.session_state:
+            st.session_state.user_logged_in = False
 
         email = st.empty()
         email = email.text_input("メールアドレスを入力してください")

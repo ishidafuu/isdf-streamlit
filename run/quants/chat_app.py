@@ -28,18 +28,19 @@ class ChatApp:
         # 銘柄コードの入力フィールドを追加
         stock_code = st.text_input("Enter a stock code")
 
+        # プロンプトのテキストを読み込む
+        with open("prompt.txt", "r", encoding="utf-8") as f:
+            default_prompt = f.read()
+
+        prompt = st.text_area("プロンプト {financial_data}:財務情報", default_prompt, height=400)
+
         # 財務情報の取得とClaude-3への渡し方
         if stock_code:
             # 財務情報APIを呼び出す（この部分は実際のAPIによって異なります）
             financial_data = self.get_financial_data(stock_code)
 
-            # プロンプトのテキストを読み込む
-            with open("prompt.txt", "r", encoding="utf-8") as f:
-                prompt = f.read().format(financial_data=financial_data)
-
-            print(prompt)
             # 財務情報をClaude-3に渡す
-            self.messages.append({"role": "user", "content": f"{prompt}"})
+            self.messages.append({"role": "user", "content": f"{prompt.format(financial_data=financial_data)}"})
 
             # Claude-3に銘柄判断を求める
             with st.chat_message("assistant"):

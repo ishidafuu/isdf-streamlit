@@ -1,6 +1,7 @@
 streamlit
 anthropic
 pyrebase4
+pandas
 pycryptodomex
 firebase-admin
 google-cloud-secret-manager

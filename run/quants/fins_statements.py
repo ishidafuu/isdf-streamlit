@@ -1,8 +1,9 @@
 import csv
-from datetime import datetime
 import io
+from datetime import datetime
 from typing import List, Optional
 
+import pandas as pd
 import requests
 from pydantic import BaseModel
 
@@ -224,23 +225,12 @@ class Statement(BaseModel):
     def to_dict(self):
         return self.dict()
 
-    @staticmethod
-    def to_csv_string(statements: List['Statement']) -> str:
-        field_names = Statement.__annotations__.keys()
-        output = io.StringIO()
-        with output:
-            writer = csv.DictWriter(output, fieldnames=field_names)
-            writer.writeheader()
-            for statement in statements:
-                writer.writerow(statement.to_dict())
-            csv_content = output.getvalue()
-
-        with open("fins.csv", 'w', newline='', encoding='utf-8') as csvfile:
-            csvfile.write(csv_content)
-
-        return csv_content
-
-
+    def to_dict_for_pandas(self):
+        d = self.__dict__.copy()
+        for k, v in d.items():
+            if v == '':
+                d[k] = None
+        return d
 
 
 class FinsStatementsResponse(BaseModel):
@@ -340,6 +330,30 @@ class FinsStatementsResult:
         if self.pagination_key not in ["", None]:
             result["pagination_key"] = self.pagination_key
         return result
+
+    def to_dataFrame(self) -> pd.DataFrame:
+        df = pd.DataFrame([stmt.to_dict_for_pandas() for stmt in self.statements])
+        df = df.dropna(axis=1, how='all')
+        # "Revision"を含む行を削除
+        df = df[~df['TypeOfDocument'].str.contains('Revision', na=False)]
+        with open("fins.csv", 'w', newline='', encoding='utf-8') as csvfile:
+            csvfile.write(df.to_csv())
+        return df
+
+    def to_csv_string(self) -> str:
+        field_names = Statement.__annotations__.keys()
+        output = io.StringIO()
+        with output:
+            writer = csv.DictWriter(output, fieldnames=field_names)
+            writer.writeheader()
+            for statement in self.statements:
+                writer.writerow(statement.to_dict())
+            csv_content = output.getvalue()
+
+        # with open("fins.csv", 'w', newline='', encoding='utf-8') as csvfile:
+        #     csvfile.write(csv_content)
+
+        return csv_content
 
 
 def call_fins_statements(token: str, code: str) -> FinsStatementsResult:

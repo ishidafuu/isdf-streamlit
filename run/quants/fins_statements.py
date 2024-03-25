@@ -377,10 +377,9 @@ class FinsStatementsResult:
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
         def calc_qoq_growth(row, col):
-            t = row['Quarter']
             idx = df.index.get_loc(row.name)  # 現在の行のインデックスを取得
             if idx < 4:
-                return 0
+                return pd.NaT
 
             prev1Q = df.at[df.index[idx - 1], col]
             prev2Q = df.at[df.index[idx - 2], col]

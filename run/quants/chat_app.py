@@ -46,42 +46,40 @@ class ChatApp:
             # blob_name = f"{stock_code}/financial_data.csv"
             # uploader.upload_string(blob_name, financial_data_csv)
             # financial_data_url = f"https://storage.googleapis.com/isdf-quants/{blob_name}"
-            #
-            # # print(financial_data)
-            # # 財務情報をClaude-3に渡す
-            # self.messages.append({"role": "user", "content": f"{prompt.format(financial_data=financial_data_csv)}"})
-            #
-            # # Claude-3に銘柄判断を求める
-            # with st.chat_message("assistant"):
-            #     message_placeholder = st.empty()
-            #     response_message = ""
-            #     with client.messages.stream(
-            #             model=self.model,
-            #             max_tokens=4096,
-            #             messages=self.messages
-            #     ) as stream:
-            #         for text in stream.text_stream:
-            #             response_message += text
-            #             message_placeholder.markdown(response_message)
-            #
-            # final_message = stream.get_final_message()
-            # input_token = final_message.usage.input_tokens
-            # output_token = final_message.usage.output_tokens
-            # message_placeholder.markdown(f"{response_message} \n token:{input_token + output_token} (i:{input_token} o:{output_token})")
-            # self.messages.append({"role": "assistant", "content": response_message})
+
+            # print(financial_data)
+            # 財務情報をClaude-3に渡す
+            self.messages.append({"role": "user", "content": f"{prompt.format(financial_data=financial_data_csv)}"})
+
+            # Claude-3に銘柄判断を求める
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
+                response_message = ""
+                with client.messages.stream(
+                        model=self.model,
+                        max_tokens=4096,
+                        messages=self.messages
+                ) as stream:
+                    for text in stream.text_stream:
+                        response_message += text
+                        message_placeholder.markdown(response_message)
+
+            final_message = stream.get_final_message()
+            input_token = final_message.usage.input_tokens
+            output_token = final_message.usage.output_tokens
+            message_placeholder.markdown(f"{response_message} \n token:{input_token + output_token} (i:{input_token} o:{output_token})")
+            self.messages.append({"role": "assistant", "content": response_message})
 
     # 財務情報APIを呼び出す関数（実際のAPIによって異なります）
     def get_financial_data(self, stock_code) -> pandas.DataFrame:
         # APIを呼び出して応答を取得
         response = call_fins_statements(self.id_token, stock_code)
-        df = response.to_dataFrame_sales()
-        with open(f"fins_{stock_code}.csv", 'w', newline='', encoding='utf-8') as csvfile:
-            csvfile.write(df.to_csv())
+        # df = response.to_dataFrame_sales()
+        # with open(f"fins_{stock_code}.csv", 'w', newline='', encoding='utf-8') as csvfile:
+        #     csvfile.write(df.to_csv())
 
         df = response.to_dataFrame_quarter_grow()
         with open(f"fins_qg_{stock_code}.csv", 'w', newline='', encoding='utf-8') as csvfile:
             csvfile.write(df.to_csv())
-        # 応答からデータを抽出
-        # financial_data = response.to_dict()
 
         return df

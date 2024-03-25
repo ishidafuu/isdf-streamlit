@@ -1,18 +1,21 @@
 import anthropic
+import pandas
 import streamlit as st
 
-from fins_statements import call_fins_statements, Statement
+from common import GCSUploader
+from fins_statements import call_fins_statements
 
 
 class ChatApp:
-    def __init__(self, anthropic_key, id_token):
+    def __init__(self, anthropic_key: str, id_token: str, is_local: bool):
         self.anthropic_key = anthropic_key
         self.messages = []
-        # self.model_options = ["claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229"]
-        # self.model_options = ["claude-3-sonnet-20240229", "claude-3-opus-20240229"]
         self.model_options = ["claude-3-sonnet-20240229"]
+        self.model_options = ["claude-3-sonnet-20240229", "claude-3-opus-20240229"]
+        # self.model_options = ["claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229"]
         self.model = self.model_options[0]
         self.id_token = id_token
+        self.is_local = is_local
         self.financial_data = None  # 財務情報を格納する変数
 
     def start_chat(self):
@@ -38,9 +41,15 @@ class ChatApp:
         if stock_code:
             # 財務情報APIを呼び出す（この部分は実際のAPIによって異なります）
             financial_data = self.get_financial_data(stock_code)
-            # print(financial_data)
+            financial_data_csv = financial_data.to_csv()
+            # uploader = GCSUploader(self.is_local)
+            # blob_name = f"{stock_code}/financial_data.csv"
+            # uploader.upload_string(blob_name, financial_data_csv)
+            # financial_data_url = f"https://storage.googleapis.com/isdf-quants/{blob_name}"
+            #
+            # # print(financial_data)
             # # 財務情報をClaude-3に渡す
-            # self.messages.append({"role": "user", "content": f"{prompt.format(financial_data=financial_data)}"})
+            # self.messages.append({"role": "user", "content": f"{prompt.format(financial_data=financial_data_csv)}"})
             #
             # # Claude-3に銘柄判断を求める
             # with st.chat_message("assistant"):
@@ -62,12 +71,16 @@ class ChatApp:
             # self.messages.append({"role": "assistant", "content": response_message})
 
     # 財務情報APIを呼び出す関数（実際のAPIによって異なります）
-    def get_financial_data(self, stock_code):
+    def get_financial_data(self, stock_code) -> pandas.DataFrame:
         # APIを呼び出して応答を取得
         response = call_fins_statements(self.id_token, stock_code)
-        df = response.to_dataFrame()
+        df = response.to_dataFrame_sales()
+        with open(f"fins_{stock_code}.csv", 'w', newline='', encoding='utf-8') as csvfile:
+            csvfile.write(df.to_csv())
 
-
+        df = response.to_dataFrame_quarter_grow()
+        with open(f"fins_qg_{stock_code}.csv", 'w', newline='', encoding='utf-8') as csvfile:
+            csvfile.write(df.to_csv())
         # 応答からデータを抽出
         # financial_data = response.to_dict()
 

@@ -5,3 +5,4 @@ pandas
 pycryptodomex
 firebase-admin
 google-cloud-secret-manager
+google-cloud-storage

@@ -1,5 +1,3 @@
-import csv
-import io
 from datetime import datetime
 from typing import List, Optional
 
@@ -9,6 +7,10 @@ from pydantic import BaseModel
 
 
 class Statement(BaseModel):
+    # 年度
+    Year: Optional[str] = None
+    # 四半期
+    Quarter: Optional[str] = None
     # 開示日
     DisclosedDate: str
     # 開示時刻
@@ -30,9 +32,9 @@ class Statement(BaseModel):
     # 当事業年度終了日
     CurrentFiscalYearEndDate: str
     # 翌事業年度開始日
-    NextFiscalYearStartDate: Optional[str]
+    NextFiscalYearStartDate: Optional[str] = None
     # 翌事業年度終了日
-    NextFiscalYearEndDate: Optional[str]
+    NextFiscalYearEndDate: Optional[str] = None
     # 売上高
     NetSales: str
     # 営業利益
@@ -53,6 +55,8 @@ class Statement(BaseModel):
     EquityToAssetRatio: str
     # 一株あたり純資産
     BookValuePerShare: str
+    # ROE(当期純利益/純資産)
+    ReturnOnEquity: Optional[str] = None
     # 営業活動によるキャッシュ・フロー
     CashFlowsFromOperatingActivities: str
     # 投資活動によるキャッシュ・フロー
@@ -242,6 +246,19 @@ class FinsStatementsResult:
     def __init__(self, response: FinsStatementsResponse):
         self.statements = response.statements
         self.pagination_key = response.pagination_key
+        for statement in self.statements:
+            statement.Year = statement.CurrentPeriodStartDate[:4]
+            if statement.TypeOfCurrentPeriod == 'FY':
+                statement.Quarter = statement.Year + '/4Q'
+            else:
+                statement.Quarter = statement.Year + '/' + statement.TypeOfCurrentPeriod
+
+            try:
+                profit = float(statement.Profit) * 100
+                equity = float(statement.Equity)
+                statement.ReturnOnEquity = round(profit / equity, 1)
+            except ValueError:
+                statement.ReturnOnEquity = 0
 
     def get_most_recent_valid_shares(self) -> int:
         valid_statements = [s for s in self.statements if s.NumberOfIssuedAndOutstandingSharesAtTheEndOfFiscalYearIncludingTreasuryStock not in [None, ""]]
@@ -336,24 +353,52 @@ class FinsStatementsResult:
         df = df.dropna(axis=1, how='all')
         # "Revision"を含む行を削除
         df = df[~df['TypeOfDocument'].str.contains('Revision', na=False)]
-        with open("fins.csv", 'w', newline='', encoding='utf-8') as csvfile:
-            csvfile.write(df.to_csv())
         return df
 
-    def to_csv_string(self) -> str:
-        field_names = Statement.__annotations__.keys()
-        output = io.StringIO()
-        with output:
-            writer = csv.DictWriter(output, fieldnames=field_names)
-            writer.writeheader()
-            for statement in self.statements:
-                writer.writerow(statement.to_dict())
-            csv_content = output.getvalue()
+    def to_dataFrame_sales(self) -> pd.DataFrame:
+        df = self.to_dataFrame()
+        # 売上高
+        # 営業利益
+        # 経常利益
+        # 当期純利益
+        # 当期純利益
+        # 一株あたり当期純利益(EPS)
+        # 一株あたり純資産(BPS)
+        # ROE
+        new_df = df[['Quarter', 'NetSales', 'OperatingProfit', 'OrdinaryProfit', 'Profit', 'EarningsPerShare', 'BookValuePerShare', 'ReturnOnEquity']]
+        return new_df
 
-        # with open("fins.csv", 'w', newline='', encoding='utf-8') as csvfile:
-        #     csvfile.write(csv_content)
+    def to_dataFrame_quarter_grow(self) -> pd.DataFrame:
+        df = self.to_dataFrame_sales()
 
-        return csv_content
+        # 数値に変換
+        numeric_columns = ['OperatingProfit', 'OrdinaryProfit', 'Profit', 'EarningsPerShare', 'BookValuePerShare', 'ReturnOnEquity']
+        for col in numeric_columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        def calc_qoq_growth(row, col):
+            t = row['Quarter']
+            idx = df.index.get_loc(row.name)  # 現在の行のインデックスを取得
+            if idx < 4:
+                return 0
+
+            prev1Q = df.at[df.index[idx - 1], col]
+            prev2Q = df.at[df.index[idx - 2], col]
+            prev3Q = df.at[df.index[idx - 3], col]
+            prev4Q = df.at[df.index[idx - 4], col]
+            currentQ = row[col]
+
+            # 四半期成長率( %)=((四半期[t] - 四半期[t - 4]) / (| 四半期[t] | + | 四半期[t-1] | + | 四半期[t-2] | + | 四半期[t-3] |)) * 100
+            numer = (currentQ - prev4Q) * 100
+            denom = (abs(currentQ) + abs(prev1Q) + abs(prev2Q) + abs(prev3Q))
+            growth = round((numer / denom), 1)
+            return growth
+
+        # 各列に対して四半期成長率を計算して新しい列を追加
+        for col in numeric_columns:
+            df[f'QoQGrowthRate_{col}'] = df.apply(lambda row: calc_qoq_growth(row, col), axis=1)
+
+        return df
 
 
 def call_fins_statements(token: str, code: str) -> FinsStatementsResult:

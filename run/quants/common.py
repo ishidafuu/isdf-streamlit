@@ -6,6 +6,7 @@ import pyrebase
 import requests
 import streamlit as st
 from google.cloud import secretmanager
+from google.cloud import storage
 
 id_token_validity = timedelta(hours=24)
 refresh_token_validity = timedelta(days=7)
@@ -105,3 +106,25 @@ class FirebaseLogin:
         except Exception:
             del st.session_state.user
         return False
+
+
+# @st.cache_data
+# @staticmethod
+def get_client(is_local):
+    if is_local:
+        return storage.Client.from_service_account_json('../../secrets/storage_key.json')
+    else:
+        return storage.Client()
+
+
+class GCSUploader:
+    def __init__(self, is_local):
+        self.bucket_name = "isdf-quants"
+        self.client = get_client(is_local)
+
+    def upload_string(self, destination_blob_name, string_data):
+        bucket = self.client.bucket(self.bucket_name)
+        blob = bucket.blob(destination_blob_name)
+        blob.upload_from_string(string_data)
+
+        print(f"File uploaded to gs://{self.bucket_name}/{destination_blob_name}")

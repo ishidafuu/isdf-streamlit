@@ -18,7 +18,7 @@ if secret_manager.is_local:
     anthropic_key = secret_manager.get_local_anthropic_key()
     token_manager = TokenManager()
     id_token = token_manager.get_id_token_local()
-    app = ChatApp(anthropic_key, id_token)
+    app = ChatApp(anthropic_key, id_token, True)
     app.start_chat()
 
 else:
@@ -27,5 +27,5 @@ else:
     if firebase_login.login():
         anthropic_key = secret_manager.get_secret('anthropic-key')
         id_token = get_id_token_firebase()
-        app = ChatApp(anthropic_key, id_token)
+        app = ChatApp(anthropic_key, id_token, False)
         app.start_chat()

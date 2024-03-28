@@ -3,7 +3,7 @@ import pandas
 import streamlit as st
 
 from common import GCSUploader
-from fins_statements import call_fins_statements
+from fins_statements import call_fins_statements, FinsStatementsResult
 
 
 class ChatApp:
@@ -11,7 +11,7 @@ class ChatApp:
         self.anthropic_key = anthropic_key
         self.messages = []
         self.model_options = ["claude-3-sonnet-20240229"]
-        self.model_options = ["claude-3-sonnet-20240229", "claude-3-opus-20240229"]
+        # self.model_options = ["claude-3-sonnet-20240229", "claude-3-opus-20240229"]
         # self.model_options = ["claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229"]
         self.model = self.model_options[0]
         self.id_token = id_token
@@ -41,7 +41,11 @@ class ChatApp:
         if stock_code:
             # 財務情報APIを呼び出す（この部分は実際のAPIによって異なります）
             financial_data = self.get_financial_data(stock_code)
-            financial_data_csv = financial_data.to_csv()
+
+            income_data = financial_data.to_dataframe_income().to_csv()
+            balance_data = financial_data.to_dataframe_balance().to_csv()
+            cashflow_data = financial_data.to_dataframe_cashflow().to_csv()
+            quarter_grow_data = financial_data.to_dataFrame_quarter_grow().to_csv()
             # uploader = GCSUploader(self.is_local)
             # blob_name = f"{stock_code}/financial_data.csv"
             # uploader.upload_string(blob_name, financial_data_csv)
@@ -49,7 +53,7 @@ class ChatApp:
 
             # print(financial_data)
             # 財務情報をClaude-3に渡す
-            self.messages.append({"role": "user", "content": f"{prompt.format(financial_data=financial_data_csv)}"})
+            self.messages.append({"role": "user", "content": f"{prompt.format(income_data=income_data, balance_data=balance_data, cashflow_data=cashflow_data, quarter_grow_data=quarter_grow_data)}"})
 
             # Claude-3に銘柄判断を求める
             with st.chat_message("assistant"):
@@ -71,15 +75,15 @@ class ChatApp:
             self.messages.append({"role": "assistant", "content": response_message})
 
     # 財務情報APIを呼び出す関数（実際のAPIによって異なります）
-    def get_financial_data(self, stock_code) -> pandas.DataFrame:
+    def get_financial_data(self, stock_code) -> FinsStatementsResult:
         # APIを呼び出して応答を取得
         response = call_fins_statements(self.id_token, stock_code)
         # df = response.to_dataFrame_sales()
         # with open(f"fins_{stock_code}.csv", 'w', newline='', encoding='utf-8') as csvfile:
         #     csvfile.write(df.to_csv())
 
-        df = response.to_dataFrame_quarter_grow()
-        with open(f"fins_qg_{stock_code}.csv", 'w', newline='', encoding='utf-8') as csvfile:
-            csvfile.write(df.to_csv())
+        # df = response.to_dataFrame_quarter_grow()
+        # with open(f"fins_qg_{stock_code}.csv", 'w', newline='', encoding='utf-8') as csvfile:
+        #     csvfile.write(df.to_csv())
 
-        return df
+        return response

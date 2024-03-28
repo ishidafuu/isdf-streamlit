@@ -348,33 +348,53 @@ class FinsStatementsResult:
             result["pagination_key"] = self.pagination_key
         return result
 
-    def to_dataFrame(self) -> pd.DataFrame:
+    def to_dataframe(self) -> pd.DataFrame:
         df = pd.DataFrame([stmt.to_dict_for_pandas() for stmt in self.statements])
         df = df.dropna(axis=1, how='all')
         # "Revision"を含む行を削除
         df = df[~df['TypeOfDocument'].str.contains('Revision', na=False)]
         return df
 
-    def to_dataFrame_sales(self) -> pd.DataFrame:
-        df = self.to_dataFrame()
+    def to_dataframe_income(self) -> pd.DataFrame:
+        df = self.to_dataframe()
         # 売上高
         # 営業利益
         # 経常利益
         # 当期純利益
-        # 当期純利益
         # 一株あたり当期純利益(EPS)
-        # 一株あたり純資産(BPS)
-        # ROE
-        new_df = df[['Quarter', 'NetSales', 'OperatingProfit', 'OrdinaryProfit', 'Profit', 'EarningsPerShare', 'BookValuePerShare', 'ReturnOnEquity']]
+        # 自己資本利益率(ROE)
+        cols = ['Quarter', 'NetSales', 'OperatingProfit', 'OrdinaryProfit', 'Profit', 'EarningsPerShare', 'ReturnOnEquity']
+        new_df = df[[col for col in cols if col in df.columns]]
+        return new_df
+
+    def to_dataframe_balance(self) -> pd.DataFrame:
+        df = self.to_dataframe()
+        # 総資産
+        # 純資産
+        # 自己資本比率
+        # 一株あたり純資産
+        cols = ['Quarter', 'TotalAssets', 'Equity', 'EquityToAssetRatio', 'BookValuePerShare']
+        new_df = df[[col for col in cols if col in df.columns]]
+        return new_df
+
+    def to_dataframe_cashflow(self) -> pd.DataFrame:
+        df = self.to_dataframe()
+        # 営業活動によるキャッシュ・フロー
+        # 投資活動によるキャッシュ・フロー
+        # 財務活動によるキャッシュ・フロー
+        # 現金及び現金同等物期末残高
+        cols = ['Quarter', 'CashFlowsFromOperatingActivities', 'CashFlowsFromInvestingActivities', 'CashFlowsFromFinancingActivities', 'CashAndEquivalents']
+        new_df = df[[col for col in cols if col in df.columns]]
         return new_df
 
     def to_dataFrame_quarter_grow(self) -> pd.DataFrame:
-        df = self.to_dataFrame_sales()
+        df = self.to_dataframe()
 
         # 数値に変換
-        numeric_columns = ['OperatingProfit', 'OrdinaryProfit', 'Profit', 'EarningsPerShare', 'BookValuePerShare', 'ReturnOnEquity']
+        numeric_columns = ['OrdinaryProfit']
         for col in numeric_columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
 
         def calc_qoq_growth(row, col):
             idx = df.index.get_loc(row.name)  # 現在の行のインデックスを取得
@@ -393,11 +413,16 @@ class FinsStatementsResult:
             growth = round((numer / denom), 1)
             return growth
 
+        cols = ['Quarter', 'OrdinaryProfit']
         # 各列に対して四半期成長率を計算して新しい列を追加
         for col in numeric_columns:
-            df[f'QoQGrowthRate_{col}'] = df.apply(lambda row: calc_qoq_growth(row, col), axis=1)
+            if col in df.columns:
+                col_name = f'QoQGrowthRate_{col}'
+                cols.append(col_name)
+                df[col_name] = df.apply(lambda row: calc_qoq_growth(row, col), axis=1)
 
-        return df
+        new_df = df[[col for col in cols if col in df.columns]]
+        return new_df
 
 
 def call_fins_statements(token: str, code: str) -> FinsStatementsResult:
